@@ -34,7 +34,6 @@ jobs:
         run: sudo apt -y install ccache
 
       - name: Build API docs
-        continue-on-error: true
         run: |
           export PATH="/usr/lib/ccache:$PATH"
           ./cibuild.sh
