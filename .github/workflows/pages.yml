@@ -1,0 +1,60 @@
+name: Deploy API docs
+
+on:
+  push:
+    branches: [main]
+  schedule:
+    - cron: "0 0 * * *"
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      CC: clang
+      CI_CUBERITE_BUILD_TYPE: Release
+      CI_JOB_NUMBER: ${{ github.run_number }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: cuberite/cuberite
+          submodules: recursive
+
+      - name: Setup cache
+        uses: actions/cache@v4
+        with:
+          path: /home/runner/.cache/ccache
+          key: ccache
+
+      - name: Setup Pages
+        id: pages
+        uses: actions/configure-pages@v5
+
+      - name: Install ccache
+        run: sudo apt -y install ccache
+
+      - name: Build API docs
+        continue-on-error: true
+        run: |
+          export PATH="/usr/lib/ccache:$PATH"
+          ./cibuild.sh
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: ${{ env.CC }}_${{ env.CI_CUBERITE_BUILD_TYPE}}/Server/API/
+
+  deploy:
+    needs: build
+     # Grant GITHUB_TOKEN the permissions required to make a Pages deployment
+    permissions:
+      pages: write      # to deploy to Pages
+      id-token: write   # to verify the deployment originates from an appropriate source
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
